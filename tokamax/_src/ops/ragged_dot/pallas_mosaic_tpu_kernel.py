@@ -576,7 +576,15 @@ def gmm(
   )
   call_gmm = common.custom_buffered_pallas_call(
       functools.partial(kernel, subchannel_iters=subchannel_iters),
-      out_shape=jax.ShapeDtypeStruct((m, n), out_dtype),
+      out_shape=jax.ShapeDtypeStruct(
+          (m, n),
+          out_dtype,
+          sharding=jax.sharding.NamedSharding(
+              jax.sharding.get_abstract_mesh(),
+              jax.sharding.PartitionSpec(),
+          ),
+          vma={"fsdp", "fsdp_transpose", "expert"},
+      ),
       grid_spec=pltpu.PrefetchScalarGridSpec(
           num_scalar_prefetch=2,
           in_specs=[lhs_block_spec, rhs_block_spec],
@@ -895,7 +903,15 @@ def tgmm(
   )
   call_gmm = common.custom_buffered_pallas_call(
       functools.partial(kernel, subchannel_iters=subchannel_iters),
-      out_shape=jax.ShapeDtypeStruct((num_actual_groups, k, n), out_dtype),
+      out_shape=jax.ShapeDtypeStruct(
+          (num_actual_groups, k, n),
+          out_dtype,
+          sharding=jax.sharding.NamedSharding(
+              jax.sharding.get_abstract_mesh(),
+              jax.sharding.PartitionSpec(unreduced={"fsdp", "fsdp_transpose"}),
+          ),
+          vma={"expert"},
+      ),
       grid_spec=pltpu.PrefetchScalarGridSpec(
           num_scalar_prefetch=2,
           in_specs=[lhs_block_spec, rhs_block_spec],
